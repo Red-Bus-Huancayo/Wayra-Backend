@@ -1,13 +1,14 @@
 from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
+from app.core.security import obtener_admin_actual
 from app.models.ruta import Ruta, Horario
 from app.models.viaje import Viaje, AsientoViaje
 from app.models.bus import AsientoPlantilla
-from app.schemas.ruta import RutaCreate, RutaOut, HorarioCreate, HorarioOut
+from app.schemas.ruta import RutaCreate, RutaOut, HorarioCreate, HorarioOut, HorarioConEmpresaOut
 from app.schemas.viaje import ViajeOut
 
 router = APIRouter(prefix="/rutas", tags=["Rutas"])
@@ -28,12 +29,27 @@ def buscar_rutas(
 
 
 @router.post("", response_model=RutaOut, status_code=201)
-def crear_ruta(payload: RutaCreate, db: Session = Depends(get_db)):
+def crear_ruta(
+    payload: RutaCreate,
+    db: Session = Depends(get_db),
+    _admin: bool = Depends(obtener_admin_actual),
+):
     ruta = Ruta(**payload.model_dump())
     db.add(ruta)
     db.commit()
     db.refresh(ruta)
     return ruta
+
+
+@router.get("/horarios", response_model=list[HorarioConEmpresaOut])
+def listar_horarios(db: Session = Depends(get_db)):
+    """Nota: esta ruta debe declararse ANTES de /{ruta_id} para que FastAPI
+    no confunda 'horarios' con un ruta_id."""
+    return (
+        db.query(Horario)
+        .options(joinedload(Horario.ruta).joinedload(Ruta.empresa))
+        .all()
+    )
 
 
 @router.get("/{ruta_id}", response_model=RutaOut)
@@ -45,7 +61,11 @@ def obtener_ruta(ruta_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/horarios", response_model=HorarioOut, status_code=201)
-def crear_horario(payload: HorarioCreate, db: Session = Depends(get_db)):
+def crear_horario(
+    payload: HorarioCreate,
+    db: Session = Depends(get_db),
+    _admin: bool = Depends(obtener_admin_actual),
+):
     horario = Horario(**payload.model_dump())
     db.add(horario)
     db.commit()
@@ -54,7 +74,12 @@ def crear_horario(payload: HorarioCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/horarios/{horario_id}/generar-viaje", response_model=ViajeOut, status_code=201)
-def generar_viaje(horario_id: int, fecha: date_type, db: Session = Depends(get_db)):
+def generar_viaje(
+    horario_id: int,
+    fecha: date_type,
+    db: Session = Depends(get_db),
+    _admin: bool = Depends(obtener_admin_actual),
+):
     """
     Crea un Viaje concreto para una fecha, copiando la plantilla de asientos
     del bus asignado al horario. Se llama por adelantado (ej: script diario/cron)

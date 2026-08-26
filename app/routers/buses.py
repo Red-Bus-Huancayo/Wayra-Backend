@@ -2,14 +2,27 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
+from app.core.security import obtener_admin_actual
 from app.models.bus import Bus, AsientoPlantilla
 from app.schemas.bus import BusCreate, BusOut
 
 router = APIRouter(prefix="/buses", tags=["Buses"])
 
 
+@router.get("", response_model=list[BusOut])
+def listar_buses(empresa_id: int | None = None, db: Session = Depends(get_db)):
+    query = db.query(Bus).options(joinedload(Bus.asientos))
+    if empresa_id:
+        query = query.filter(Bus.empresa_id == empresa_id)
+    return query.all()
+
+
 @router.post("", response_model=BusOut, status_code=201)
-def crear_bus(payload: BusCreate, db: Session = Depends(get_db)):
+def crear_bus(
+    payload: BusCreate,
+    db: Session = Depends(get_db),
+    _admin: bool = Depends(obtener_admin_actual),
+):
     data = payload.model_dump(exclude={"asientos"})
     bus = Bus(**data)
     db.add(bus)

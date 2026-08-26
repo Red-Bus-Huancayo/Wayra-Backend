@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.routers import empresas, rutas, buses, viajes, reservas, puntos_referencia, seguimientos
+from app.routers import empresas, rutas, buses, viajes, reservas, puntos_referencia, seguimientos, admin_auth
 
 # Crea las tablas si no existen (en producción se recomienda usar Alembic para migraciones)
 Base.metadata.create_all(bind=engine)
@@ -25,6 +25,7 @@ app.include_router(viajes.router)
 app.include_router(reservas.router)
 app.include_router(puntos_referencia.router)
 app.include_router(seguimientos.router)
+app.include_router(admin_auth.router)
 
 
 @app.get("/", tags=["Root"])

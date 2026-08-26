@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import obtener_admin_actual
 from app.models.empresa import Empresa
 from app.schemas.empresa import EmpresaCreate, EmpresaOut
 
@@ -14,7 +15,11 @@ def listar_empresas(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=EmpresaOut, status_code=201)
-def crear_empresa(payload: EmpresaCreate, db: Session = Depends(get_db)):
+def crear_empresa(
+    payload: EmpresaCreate,
+    db: Session = Depends(get_db),
+    _admin: bool = Depends(obtener_admin_actual),
+):
     empresa = Empresa(**payload.model_dump())
     db.add(empresa)
     db.commit()

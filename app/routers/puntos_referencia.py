@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import obtener_admin_actual
 from app.models.ruta import Ruta
 from app.models.punto_referencia import PuntoReferencia
 from app.schemas.punto_referencia import PuntoReferenciaCreate, PuntoReferenciaOut
@@ -23,7 +24,12 @@ def listar_puntos(ruta_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=PuntoReferenciaOut, status_code=201)
-def crear_punto(ruta_id: int, payload: PuntoReferenciaCreate, db: Session = Depends(get_db)):
+def crear_punto(
+    ruta_id: int,
+    payload: PuntoReferenciaCreate,
+    db: Session = Depends(get_db),
+    _admin: bool = Depends(obtener_admin_actual),
+):
     """
     Registrar un punto de referencia (distrito/localidad) en la ruta.
     Recomendado: solo distritos/localidades principales, no anexos pequeños,
