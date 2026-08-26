@@ -37,6 +37,22 @@ Documentación interactiva en `http://localhost:8000/docs`.
    prellenado, para redirigir al usuario a confirmar con la empresa
 10. `POST /reservas/{id}/cancelar` — libera los asientos si el usuario desiste
 
+## Panel de administración (para cargar empresas, sin usar /docs)
+
+Se agregó un login simple (una sola contraseña, sin usuarios/roles) para
+proteger la creación de datos. En el frontend, entra a `/admin/login` con la
+contraseña que pongas en `ADMIN_PASSWORD`.
+
+- `POST /admin/login` — recibe `{"password": "..."}`, devuelve un token JWT
+  válido por `ADMIN_TOKEN_EXPIRA_HORAS` (12 por defecto).
+- Los endpoints de escritura (crear empresa, bus, ruta, horario, generar
+  viaje, punto de referencia) ahora requieren `Authorization: Bearer <token>`.
+- Los endpoints de lectura (búsquedas, mapa de asientos, etc.) siguen siendo
+  públicos — el frontend de pasajeros no necesita login.
+- **Importante:** cambia `ADMIN_PASSWORD` y `ADMIN_SECRET_KEY` a valores
+  reales en producción (Railway → Variables). Los valores por defecto en
+  `.env.example` son solo de referencia, no los uses tal cual.
+
 ## Función "Ángel Guardián"
 
 Al confirmar la reserva (`POST /reservas/{id}/whatsapp`) se crea automáticamente
